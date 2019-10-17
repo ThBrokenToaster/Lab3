@@ -116,44 +116,10 @@ public class cloth_motion: MonoBehaviour {
 		b = temp;
 	}
 
-    /*
-    void Strain_Limiting(Vector3[] vertices)
+    void Strain_Limiting()
     {
-        float w = .2f;
-        Vector3 xiSum = Vector3.zero;
-        for (int j = 0; j < vertices.Length; j++) { 
-
-            xiSum = Vector3.zero;
-            for (int i = 0; i < edge_list.Length; i = i + 2)
-            {
-                if (vertices[edge_list[i]] == vertices[j] && i < L0.Length)
-                {
-                    float le0 = L0[i];
-                    Vector3 xi = vertices[edge_list[i]];
-                    Vector3 xj = vertices[edge_list[i + 1]];
-                    Vector3 xei = (1 / 2) * (xi + xj + le0 * ((xi - xj) / ((xi - xj).magnitude)));
-                    xiSum += xei;
-                }
-            }
-            for (int i = 1; i < edge_list.Length; i = i + 2)
-            {
-                if (vertices[edge_list[i]] == vertices[j] && i < L0.Length)
-                {
-                    float le0 = L0[i - 1];
-                    Vector3 xi = vertices[edge_list[i]];
-                    Vector3 xj = vertices[edge_list[i - 1]];
-                    Vector3 xei = (1 / 2) * (xi + xj + le0 * ((xj - xi) / ((xj - xi).magnitude)));
-                    xiSum += xei;
-                }
-            }
-            Vector3 xiNew = (w * vertices[j] + xiSum) / (w + edge_list.Length / 2);
-            vertices[j] = xiNew;
-            velocities[j] = velocities[j] + (1 / t) * (xiNew - vertices[j]);
-        }
-	}*/
-
-    void Strain_Limiting(Vector3[] vertices)
-    {
+        Mesh mesh = GetComponent<MeshFilter>().mesh;
+        Vector3[] vertices = mesh.vertices;
         float w = .2f;
         Vector3[] sum_x = new Vector3[vertices.Length];
         for (int v = 0; v < sum_x.Length; v++)
@@ -163,14 +129,14 @@ public class cloth_motion: MonoBehaviour {
             sum_N[v] = 0;
 
         //Edge Loop
-        for (int e = 0; e < L0.Length; e++)
+        for (int e = 0; e < edge_list.Length / 2; e++)
         {
             int i = 2 * e;
             int j = 2 * e + 1;
             Vector3 xi = vertices[edge_list[i]];
             Vector3 xj = vertices[edge_list[j]];
-            Vector3 xei = (1 / 2) * (xi + xj + L0[e] * ((xi - xj) / ((xi - xj).magnitude)));
-            Vector3 xej = (1 / 2) * (xi + xj + L0[e] * ((xj - xi) / ((xi - xj).magnitude)));
+            Vector3 xei = (.5f) * (xi + xj + (L0[e] * ((xi - xj) / ((xi - xj).magnitude))));
+            Vector3 xej = (.5f) * (xi + xj + (L0[e] * ((xj - xi) / ((xi - xj).magnitude))));
             sum_x[edge_list[i]] += xei;
             sum_x[edge_list[j]] += xej;
             sum_N[edge_list[i]]++;
@@ -183,55 +149,13 @@ public class cloth_motion: MonoBehaviour {
         {
             if (i != 0 && i != 10)
             {
-                Vector3 xNew = ((w * vertices[i] + sum_x[i]) / (w + sum_N[i]));
+                Vector3 xNew = (((w * vertices[i]) + sum_x[i]) / (w + sum_N[i]));
                 velocities[i] += (1 / t) * (xNew - vertices[i]);
                 vertices[i] = xNew;
 
             }
         }
-
-
-
-
-
-
-
-        /*
-        for (int i = 0; i < vertices.Length; i++)
-        {
-            if (i != 0 && i != 10)
-            {
-                Vector3 xiSum = Vector3.zero;
-                int k = 0;
-                xiNew[i] = vertices[i];
-                for (int j = 0; j < edge_list.Length; j++)
-                {
-                    if (vertices[i] == vertices[edge_list[j]])
-                    {
-                        Vector3 xi = Vector3.zero;
-                        Vector3 xj = Vector3.zero;
-                        Vector3 xei = Vector3.zero;
-                        if (j % 2 == 0 || j == 0)
-                        {
-                            xi = vertices[edge_list[j]];
-                            xj = vertices[edge_list[j + 1]];
-                            xei = (1 / 2) * (xi + xj + L0[j / 2] * ((xi - xj) / ((xi - xj).magnitude)));
-                        } else
-                        {
-                            xi = vertices[edge_list[j - 1]];
-                            xj = vertices[edge_list[j]];
-                            xei = (1 / 2) * (xi + xj + L0[j / 2] * ((xi - xj) / ((xi - xj).magnitude)));
-                        }
-                        xiSum += xei;
-                        k++;
-                    }
-                }
-                xiNew[i] = ((w * vertices[i] + xiSum) / (w + k));
-                velocities[i] = velocities[i] + (1 / t) * (xiNew[i] - vertices[i]);
-
-                vertices[i] = xiNew[i];
-            }
-        }*/
+        mesh.vertices = vertices;
     }
 
 
@@ -245,7 +169,7 @@ public class cloth_motion: MonoBehaviour {
 	{
 		Mesh mesh = GetComponent<MeshFilter> ().mesh;
 		Vector3[] vertices = mesh.vertices;
-        for (int i = 0; i < mesh.vertexCount; i++)
+        for (int i = 0; i < vertices.Length; i++)
         {
             if (i != 0 && i != 10)
             {
@@ -254,27 +178,14 @@ public class cloth_motion: MonoBehaviour {
                 vertices[i] += t * velocities[i];
             }
         }
+        mesh.vertices = vertices;
 
         for (int h = 0; h < 64; h++)
         {
-            Strain_Limiting(vertices);
+            Strain_Limiting();
         }
-        //vertices = xiNew;
-        /*
-        for (int i = 0; i < vertices.Length; i++)
-        {
-            velocities[i] *= damping;
-            if (i != 0 && i != 10)
-            {
-                vertices[i] += (velocities[i] * t);
-
-            }
-        }*/
-
-
-        mesh.vertices = vertices;
 		mesh.RecalculateNormals();
-
+        
 	}
 
 }
